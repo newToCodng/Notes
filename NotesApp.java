@@ -27,7 +27,7 @@ public class NotesApp {
         while (true) {
             System.out.print("Enter choice (1-3): ");
             try {
-                return Integer.parseInt(scanner.nextLine());
+                return Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input! Please enter 1-3");
             }
@@ -58,7 +58,7 @@ class Note {
     }
 
     String toFileFormat() {
-        return escape(title) + "|" + escape(content);
+        return escape(title) + "|" + escape(content); // Escape pipes
     }
 
     private String escape(String text) {
@@ -77,6 +77,10 @@ class NotesManager {
     public void addNote(Scanner scanner) {
         try {
             String title = getNonEmptyInput(scanner, "Enter note title: ");
+            if (fileManager.noteExists(title)) {
+                System.out.println("❌ Note with title '" + title + "' already exists!");
+                return;
+            }
             String content = getNonEmptyInput(scanner, "Enter note content: ");
 
             Note newNote = new Note(title, content);
@@ -141,5 +145,26 @@ class NoteFileManager {
 
     private String unescape(String text) {
         return text.replace("\\|", "|");
+    }
+
+    public boolean noteExists(String targetTitle) {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) return false;
+
+        try (Scanner fileScanner = new Scanner(file)) {
+            while (fileScanner.hasNextLine()) {
+                String line = fileScanner.nextLine();
+                String[] parts = line.split("(?<!\\\\)\\|");
+                if (parts.length == 2) {
+                    String existingTitle = unescape(parts[0]);
+                    if (existingTitle.equalsIgnoreCase(targetTitle.trim())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("⚠️ Error checking notes: " + e.getMessage());
+        }
+        return false;
     }
 }
